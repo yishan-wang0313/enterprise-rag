@@ -1,0 +1,10 @@
+# Streamlit 配置
+# 关掉文件监听器,避免它扫描 transformers/torchvision 这些大库时刷屏报错。
+# 代价:改代码后不会自动热重载,要手动刷新浏览器(或 Ctrl+C 重启)。
+
+[server]
+fileWatcherType = "none"
+
+[logger]
+# 把日志级别提到 warning,屏蔽掉 INFO 噪声
+level = "warning"

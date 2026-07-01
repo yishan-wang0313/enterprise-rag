@@ -1,0 +1,35 @@
+# requirements.txt
+# ----------------
+# 这个文件列出项目运行所需的第三方依赖。
+# 使用方法：
+# pip install -r requirements.txt
+
+# Web 界面：用 Streamlit 快速搭建问答页面
+streamlit
+
+# RAG 框架：帮助我们组织文档加载、切块、向量化、检索、生成等流程
+langchain
+langchain-openai
+langchain-community
+langchain-text-splitters
+
+# OpenAI SDK（LLM 调用）
+openai
+
+# 向量数据库：本地存储文档向量，支持语义检索
+chromadb
+
+# 文档解析：读取 Word、Excel、Markdown 等不同格式的文件
+python-docx
+openpyxl
+markdown
+
+# 关键词检索（BM25）
+rank-bm25
+
+# 重排序：后续可以用它提升检索结果质量
+sentence-transformers
+
+# 工具：环境变量加载、Token 统计等
+python-dotenv
+tiktoken

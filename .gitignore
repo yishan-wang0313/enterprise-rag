@@ -1,0 +1,52 @@
+# .gitignore for enterprise_rag
+# 告诉 git 哪些文件不要提交到版本库
+
+# ==== Secrets (绝对不能提交!) ====
+.env
+.env.*
+!.env.example
+*.pem
+secrets/
+
+# ==== 运行时生成的数据 ====
+database/
+chroma_db/
+uploads/
+*.sqlite3
+*.sqlite3-*
+
+# ==== 模型文件(太大,应该走 huggingface hub) ====
+*.safetensors
+*.bin
+models/
+
+# ==== Python 缓存 ====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ==== 虚拟环境 ====
+venv/
+.venv/
+env/
+
+# ==== IDE / 编辑器 ====
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ==== Streamlit 本地状态 ====
+.streamlit/secrets.toml
+
+# ==== 日志 / 临时文件 ====
+*.log
+tmp/
