@@ -29,12 +29,16 @@ from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
-from sentence_transformers import CrossEncoder
+
+# 注意:sentence_transformers 是重依赖(带 torch,~500MB)。
+# 只在 ENABLE_RERANK=true 时才 import,避免 lite 模式浪费内存。
+# 见 _get_cross_encoder() 内的延迟 import。
 
 from config import (
     COLLECTION_NAME,
     DB_PATH,
     EMBEDDING_MODEL,
+    ENABLE_RERANK,
     OPENAI_API_KEY,
     RERANK_TOP_K,
     TOP_K,
@@ -62,7 +66,7 @@ class SearchResult(TypedDict):
 # ---------------------------------------------------------------------------
 _vectorstore: Chroma | None = None
 _bm25_retriever: BM25Retriever | None = None
-_cross_encoder: CrossEncoder | None = None
+_cross_encoder = None  # 类型: CrossEncoder | None,懒 import 所以不写死类型
 
 
 def _get_vectorstore() -> Chroma:
@@ -124,11 +128,16 @@ def reset_bm25_cache() -> None:
     _bm25_retriever = None
 
 
-def _get_cross_encoder() -> CrossEncoder:
-    """加载重排序模型(第一次会下载 ~280 MB 到本地缓存)。"""
+def _get_cross_encoder():
+    """
+    懒加载重排序模型(第一次会下载 ~1.1 GB 到本地缓存)。
+    sentence_transformers 也是这里第一次真正 import,避免 lite 模式启动时就把
+    torch 拉进内存。
+    """
 
     global _cross_encoder
     if _cross_encoder is None:
+        from sentence_transformers import CrossEncoder  # 懒 import
         print(f"📥 加载 CrossEncoder 模型: {_RERANKER_MODEL_NAME}(首次会下载)")
         _cross_encoder = CrossEncoder(_RERANKER_MODEL_NAME)
     return _cross_encoder
@@ -221,6 +230,13 @@ def rerank(
     if not candidates:
         return []
 
+    # Lite 模式:跳过 CrossEncoder,直接返回融合后的 top_n。
+    # 分数用融合排名的倒数(和 RRF 尺度一致),避免下游 UI 显示 0 分误导。
+    if not ENABLE_RERANK:
+        top = candidates[:top_n]
+        # 简单打分:排名越靠前分越高,避免全零
+        return [(doc, 1.0 / (i + 1)) for i, doc in enumerate(top)]
+
     model = _get_cross_encoder()
     pairs = [(query, doc.page_content) for doc in candidates]
     scores = model.predict(pairs)  # 返回 list[float]
@@ -264,7 +280,8 @@ def search(
     reranked = rerank(query, candidates, rerank_top_n := rerank_top_k)
 
     if verbose:
-        print(f"   重排序后:{len(reranked)} 条")
+        mode = "重排序后" if ENABLE_RERANK else "截断后 (lite mode)"
+        print(f"   {mode}:{len(reranked)} 条")
 
     return [
         {

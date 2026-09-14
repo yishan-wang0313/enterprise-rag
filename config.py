@@ -74,3 +74,15 @@ TOP_K = 20
 # 如果后面增加“重排序”模型，
 # 就从 TOP_K 个候选里再挑出最相关的前 RERANK_TOP_K 个。
 RERANK_TOP_K = 4
+
+
+# =========================
+# 部署 / 运行时开关
+# =========================
+
+# 是否加载本地 CrossEncoder 模型(BAAI/bge-reranker-base ~1.1GB)。
+# 默认开;云端资源紧张时可以设 ENABLE_RERANK=false 走"lite mode":
+#   - 只跑 Vector + BM25 + RRF,跳过精排
+#   - 节省 ~1.1GB 磁盘 + ~500MB 内存
+#   - 精度会下降,但依然可用
+ENABLE_RERANK = os.getenv("ENABLE_RERANK", "true").lower() != "false"

@@ -177,6 +177,7 @@ All tunables live in [`config.py`](config.py):
 | `RERANK_TOP_K` | 4 | Final results sent to the LLM |
 | `EMBEDDING_MODEL` | text-embedding-3-small | 1536-dim |
 | `CHAT_MODEL` | gpt-4o-mini | |
+| `ENABLE_RERANK` env var | `true` | Set to `false` to skip loading the 1.1GB CrossEncoder (lite mode for constrained cloud tiers) |
 
 ---
 
