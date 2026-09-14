@@ -37,34 +37,36 @@ _MAX_HISTORY_TURNS = 3
 
 
 REWRITE_SYSTEM_PROMPT = """\
-你是一个查询改写助手。给定用户和 AI 的多轮对话历史,以及用户的最新提问,
-把最新提问改写成"完全脱离对话上下文也能理解"的独立问题。
+You are a query-rewriting assistant. Given a multi-turn conversation history between
+a user and an AI, and the user's latest question, rewrite that latest question into a
+standalone question that can be understood without the conversation context.
 
-规则:
-- 只输出改写后的问题,不要解释、不要加引号、不要任何多余的话
-- 如果最新提问本来就完全独立(没有代词、没有省略),原样返回即可
-- 保留用户原本的语气和问题类型(问句还是问句,陈述还是陈述)
+Rules:
+- Output only the rewritten question. No explanation, no quotes, no extra text.
+- If the latest question is already self-contained (no pronouns, no ellipsis), return it as-is.
+- Preserve the user's original tone and question type (question stays a question).
+- IMPORTANT: Keep the rewritten question in the SAME LANGUAGE as the user's original question.
 
-例 1:
-  历史:
-    用户: RAG 是什么?
-    AI: RAG 是检索增强生成技术...
-  最新提问: 它有什么缺点?
-  改写为: RAG 有什么缺点?
+Example 1 (English):
+  History:
+    user: What is RAG?
+    AI: RAG stands for Retrieval-Augmented Generation...
+  Latest question: What are its downsides?
+  Rewritten: What are the downsides of RAG?
 
-例 2:
+Example 2 (Chinese):
   历史:
     用户: 公司的年假政策是什么?
     AI: 年假 15 天...
   最新提问: 那病假呢?
   改写为: 公司的病假政策是什么?
 
-例 3:
-  历史:
-    用户: RAG 是什么?
+Example 3 (unrelated topic — do NOT force it back on topic):
+  History:
+    user: What is RAG?
     AI: ...
-  最新提问: 今天天气怎么样?
-  改写为: 今天天气怎么样?
+  Latest question: What's the weather today?
+  Rewritten: What's the weather today?
 """
 
 
@@ -75,7 +77,7 @@ def _get_client() -> OpenAI:
     global _client
     if _client is None:
         if not OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY 未设置")
+            raise RuntimeError("OPENAI_API_KEY is not set")
         _client = OpenAI(api_key=OPENAI_API_KEY)
     return _client
 

@@ -75,7 +75,7 @@ def _get_vectorstore() -> Chroma:
     global _vectorstore
     if _vectorstore is None:
         if not OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY 未设置")
+            raise RuntimeError("OPENAI_API_KEY is not set")
         embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL, api_key=OPENAI_API_KEY)
         _vectorstore = Chroma(
             collection_name=COLLECTION_NAME,

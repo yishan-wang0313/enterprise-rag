@@ -31,17 +31,19 @@ from core.retriever import SearchResult, search
 # Prompt
 # ---------------------------------------------------------------------------
 SYSTEM_PROMPT = """\
-你是一个企业知识库问答助手。
+You are an enterprise knowledge base Q&A assistant.
 
-工作方式:
-1. 优先使用下方【参考资料】中的内容来回答用户问题。
-   参考资料可能是表格、列表或纯文本,只要里面有相关信息,就提取出来回答。
-2. 即使参考资料的格式看起来零碎(例如 tab/管道符分隔的表格),
-   也请尝试理解其结构并据此作答。
-3. 只有当参考资料里确实**完全没有**与问题相关的信息时,
-   才回答:"我在知识库里没有找到相关信息,无法回答这个问题。"
-4. 回答时尽量在末尾用 [编号] 的形式标注引用,例如 "...是工程部 [1]"。
-5. 用简洁、自然的中文回答。
+How to answer:
+1. Prefer to use content from the [Reference Material] below to answer the user's question.
+   Reference material may be tables, lists, or plain text — extract relevant information
+   regardless of formatting.
+2. Even if the reference material looks fragmented (e.g. tab-separated or pipe-separated
+   tables), try to understand its structure and answer accordingly.
+3. Only when the reference material contains **absolutely no** relevant information should
+   you say: "I couldn't find relevant information in the knowledge base to answer this."
+4. When answering, cite sources at the end using bracket numbers, e.g. "...is Engineering [1]".
+5. Keep answers concise and natural.
+6. Match the user's language — if they ask in Chinese, answer in Chinese; English → English.
 """
 
 
@@ -71,7 +73,7 @@ def _get_client() -> OpenAI:
     global _client
     if _client is None:
         if not OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY 未设置")
+            raise RuntimeError("OPENAI_API_KEY is not set")
         _client = OpenAI(api_key=OPENAI_API_KEY)
     return _client
 
@@ -108,12 +110,12 @@ def build_user_prompt(query: str, context: str) -> str:
 # ---------------------------------------------------------------------------
 def generate_answer(query: str) -> RagAnswer:
     if not query.strip():
-        raise ValueError("query 不能为空")
+        raise ValueError("query must not be empty")
 
     sources = search(query, verbose=False)
     if not sources:
         return {
-            "answer": "我在知识库里没有找到相关信息,无法回答这个问题。",
+            "answer": "I couldn't find relevant information in the knowledge base to answer this.",
             "sources": [],
         }
 
@@ -130,7 +132,7 @@ def generate_answer(query: str) -> RagAnswer:
             temperature=0.2,
         )
     except OpenAIError as exc:
-        raise RuntimeError(f"调用 Chat 模型失败: {exc}") from exc
+        raise RuntimeError(f"Chat model call failed: {exc}") from exc
 
     answer = (response.choices[0].message.content or "").strip()
     return {"answer": answer, "sources": sources}
@@ -150,7 +152,7 @@ def generate_answer_stream(query: str) -> Generator[StreamEvent, None, None]:
     """
 
     if not query.strip():
-        raise ValueError("query 不能为空")
+        raise ValueError("query must not be empty")
 
     sources = search(query, verbose=False)
 
@@ -160,7 +162,7 @@ def generate_answer_stream(query: str) -> Generator[StreamEvent, None, None]:
     if not sources:
         yield {
             "type": "answer_chunk",
-            "content": "我在知识库里没有找到相关信息,无法回答这个问题。",
+            "content": "I couldn't find relevant information in the knowledge base to answer this.",
         }
         return
 
@@ -178,7 +180,7 @@ def generate_answer_stream(query: str) -> Generator[StreamEvent, None, None]:
             stream=True,   # 👈 关键:开启流式
         )
     except OpenAIError as exc:
-        yield {"type": "answer_chunk", "content": f"\n[调用 Chat 模型失败: {exc}]"}
+        yield {"type": "answer_chunk", "content": f"\n[Chat model call failed: {exc}]"}
         return
 
     # OpenAI 流式接口返回一个迭代器,每个 chunk 是一小段 delta

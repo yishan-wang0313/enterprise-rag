@@ -22,37 +22,37 @@ from __future__ import annotations
 class RagError(Exception):
     """业务异常基类。所有子类必须覆盖 user_message。"""
 
-    user_message: str = "系统出错了,请稍后重试。"
+    user_message: str = "Something went wrong. Please try again."
 
 
 class ConfigError(RagError):
     """配置缺失或错误(比如没设 OPENAI_API_KEY)。"""
 
-    user_message = "配置错误:请检查 .env 文件里的 OPENAI_API_KEY 是否已经设置。"
+    user_message = "Configuration error: please check that OPENAI_API_KEY is set in your .env file."
 
 
 class DocumentError(RagError):
     """文档解析失败(格式不支持、文件损坏)。"""
 
-    user_message = "文档处理失败。请检查文件格式是否为 docx / xlsx / txt / md,且没有损坏。"
+    user_message = "Failed to process this document. Check that the file is a valid docx / xlsx / txt / md and not corrupted."
 
 
 class EmptyKnowledgeBaseError(RagError):
     """知识库为空却尝试检索。"""
 
-    user_message = "知识库还是空的。请先在左侧上传并导入文档,再来提问。"
+    user_message = "The knowledge base is empty. Please upload and import a document from the sidebar first."
 
 
 class RetrievalError(RagError):
     """检索阶段失败(向量库读写异常、CrossEncoder 加载失败等)。"""
 
-    user_message = "检索失败,请稍后重试。可能是模型加载中或数据库繁忙。"
+    user_message = "Retrieval failed. The model may still be loading, or the database is busy — please try again."
 
 
 class GenerationError(RagError):
     """LLM 生成阶段失败(API 报错、超时、额度不足)。"""
 
-    user_message = "AI 生成回答失败。可能是 API 额度不足、网络问题或超时。"
+    user_message = "The AI failed to generate an answer. Possible causes: API quota exceeded, network issue, or timeout."
 
 
 def friendly_message(exc: Exception) -> str:
@@ -66,8 +66,8 @@ def friendly_message(exc: Exception) -> str:
     if isinstance(exc, RagError):
         detail = str(exc)
         if detail and detail != exc.user_message:
-            return f"{exc.user_message}\n\n_详细信息:{detail}_"
+            return f"{exc.user_message}\n\n_Details: {detail}_"
         return exc.user_message
 
     # 未预期的错误,尽量给点线索
-    return f"发生了未预期的错误:{type(exc).__name__}: {exc}"
+    return f"Unexpected error: {type(exc).__name__}: {exc}"
