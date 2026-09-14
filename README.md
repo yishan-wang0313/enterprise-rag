@@ -10,7 +10,14 @@ Built as a learning-by-shipping project. Every stage is exposed and pluggable �
 
 ## Live Demo
 
-> _Deploy link goes here after you push to Streamlit Cloud / HuggingFace Spaces._
+**👉 Try it here: [yishan-enterprise-rag.streamlit.app](https://yishan-enterprise-rag.streamlit.app)**
+
+Upload any `.docx` / `.xlsx` / `.txt` / `.md` from the sidebar, then ask a question.
+Responds in English or Chinese to match your query language.
+
+> ℹ️ The live demo runs in "lite mode" (`ENABLE_RERANK=false`) to fit Streamlit Cloud's
+> memory tier — vector + BM25 + RRF is enabled, but the CrossEncoder rerank step is
+> skipped. Run locally to see the full pipeline.
 
 ## Screenshot
 
