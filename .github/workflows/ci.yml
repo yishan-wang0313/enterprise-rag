@@ -41,14 +41,6 @@ jobs:
           python -c "
           import sys; sys.path.insert(0, '.')
           import app  # noqa
-          from core import loader, chunker, retriever, generator, rewriter, agent, exceptions
-          from core.agent import calculator, current_time, TOOLS
-          # Verify safe tools work without any API
-          assert calculator.invoke({'expression': '2 + 3 * 4'}) == 'Result: 14'
-          assert 'UTC' in current_time.invoke({})
-          assert len(TOOLS) == 3
-          # Verify unsafe eval is blocked
-          bad = calculator.invoke({'expression': '__import__(\"os\").system(\"true\")'})
-          assert 'Error' in bad, f'AST safe-eval failed: {bad}'
-          print('All imports OK; safe tools verified.')
+          from core import loader, chunker, retriever, generator, rewriter, exceptions
+          print('All core modules import cleanly.')
           "

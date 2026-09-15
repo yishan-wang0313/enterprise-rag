@@ -1,11 +1,12 @@
-# Enterprise RAG + Agent — Hybrid Retrieval, CrossEncoder Rerank, LangGraph Tools
+# Enterprise RAG — Hybrid Retrieval + CrossEncoder Rerank
 
 An end-to-end **Retrieval-Augmented Generation** system built from scratch to production-shape:
 hybrid retrieval (vector + BM25), CrossEncoder rerank, streaming generation with source citations,
-multi-turn query rewriting, a **LangGraph ReAct agent** that routes between the RAG search and
-other tools, and a Streamlit UI.
+multi-turn query rewriting, and a Streamlit UI.
 
 Built as a learning-by-shipping project. Every stage is exposed and pluggable — no framework magic.
+
+_Agent layer (LangGraph, tool use) is being rebuilt as a hand-written learning exercise._
 
 ---
 
@@ -80,44 +81,6 @@ uploaded file ──▶│    loader    │──▶ LoadedDocument {content, me
 
 ---
 
-## Agent layer (LangGraph ReAct)
-
-Beyond pure RAG, the system includes a **ReAct-style agent** ([`core/agent.py`](core/agent.py))
-that lets the LLM decide, per turn, which tool to invoke:
-
-- `search_knowledge_base(query)` — the full hybrid RAG pipeline above
-- `calculator(expression)` — AST-based safe arithmetic (rejects any name/call node — no `eval` risk)
-- `current_time()` — UTC timestamp
-
-The graph is a standard three-node loop:
-
-```
-START → agent_node → conditional
-                     ├─ tool_calls present → tool_node → agent_node (loop)
-                     └─ final answer       → END
-```
-
-State uses LangGraph's `add_messages` reducer; conversation memory is persisted via
-`InMemorySaver` keyed on `thread_id`. `stream_agent()` yields structured events
-(`tool_call` / `tool_result` / `answer`) suitable for driving a live UI.
-
-**Example: self-correcting error recovery in action**
-
-```
-❓ Query: What time is it right now, and how many hours until midnight UTC?
-🔧 tool_call: current_time({})
-🔧 tool_call: calculator({'expression': '24 - current_hour'})
-📤 tool_result [current_time]: 2026-09-15 06:32:27 UTC
-📤 tool_result [calculator]: Error: Unsupported expression node: Name
-🔧 tool_call: current_time({})                  ← agent re-plans after seeing the error
-📤 tool_result [current_time]: 2026-09-15 06:32:30 UTC
-🔧 tool_call: calculator({'expression': '24 - 6'})  ← now with a literal number
-📤 tool_result [calculator]: Result: 18
-💬 Answer: The current time is 06:32 UTC. There are 18 hours until midnight UTC.
-```
-
-Try it: `python core/agent.py "your question"`.
-
 ## Why this design
 
 | Choice | Reason |
@@ -129,8 +92,6 @@ Try it: `python core/agent.py "your question"`.
 | **Streaming + citations** | Time-to-first-token matters for UX. Citations make answers verifiable. |
 | **Domain exceptions** | `RagError` hierarchy separates user-facing messages from raw tracebacks. Empty-KB / config / retrieval / generation failures each render friendly UI. |
 | **Persistent Chroma + stable IDs** | `{filename}#{chunk_index}` IDs make re-imports upsert (no duplicates), and support metadata-filtered deletion. |
-| **ReAct agent over RAG** | The LLM decides *when* to search vs answer directly, chains tool calls, and self-corrects on tool errors — a much richer UX than always-search RAG. |
-| **AST-based calculator (no `eval`)** | Sandboxing user math via `ast.parse` + a whitelist of `BinOp` / `UnaryOp` nodes; any `Name` / `Call` / `Attribute` node is rejected before evaluation. Safe to expose to arbitrary LLM output. |
 
 ---
 
@@ -141,7 +102,6 @@ Try it: `python core/agent.py "your question"`.
 - **Vector DB**: ChromaDB (persistent, local)
 - **Retrieval**: langchain `Chroma` + `rank_bm25` + custom RRF
 - **Rerank**: sentence-transformers CrossEncoder (`BAAI/bge-reranker-base`)
-- **Agent**: LangGraph 1.x `StateGraph` + `ToolNode` + `InMemorySaver`
 - **Chunker**: langchain `RecursiveCharacterTextSplitter`
 - **UI**: Streamlit
 - **Doc parsing**: python-docx, openpyxl, markdown
@@ -206,7 +166,6 @@ enterprise_rag/
 │   ├── retriever.py             # Vector + BM25 + RRF + CrossEncoder
 │   ├── generator.py             # Streaming GPT with grounding + citations
 │   ├── rewriter.py              # Multi-turn query rewriting
-│   ├── agent.py                 # LangGraph ReAct agent + safe tools
 │   └── exceptions.py            # Domain exception hierarchy
 │
 ├── database/chroma_db/          # Persistent vector store (gitignored)
