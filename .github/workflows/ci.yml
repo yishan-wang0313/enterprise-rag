@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies (lite mode — skip torch/sentence-transformers)
+        env:
+          # CI runs in lite mode: no CrossEncoder, no BAAI 1.1GB download
+          ENABLE_RERANK: "false"
+        run: |
+          pip install --upgrade pip
+          # Install everything except the heavy ML stack that only matters for local rerank
+          pip install streamlit langchain langchain-openai langchain-community langchain-text-splitters langgraph
+          pip install chromadb openai python-docx openpyxl markdown python-dotenv rank-bm25
+
+      - name: Verify imports (no API calls)
+        env:
+          ENABLE_RERANK: "false"
+          OPENAI_API_KEY: "sk-dummy-key-for-ci-imports-only"
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          import app  # noqa
+          from core import loader, chunker, retriever, generator, rewriter, agent, exceptions
+          from core.agent import calculator, current_time, TOOLS
+          # Verify safe tools work without any API
+          assert calculator.invoke({'expression': '2 + 3 * 4'}) == 'Result: 14'
+          assert 'UTC' in current_time.invoke({})
+          assert len(TOOLS) == 3
+          # Verify unsafe eval is blocked
+          bad = calculator.invoke({'expression': '__import__(\"os\").system(\"true\")'})
+          assert 'Error' in bad, f'AST safe-eval failed: {bad}'
+          print('All imports OK; safe tools verified.')
+          "
